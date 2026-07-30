@@ -2,13 +2,24 @@ from src import base_job_scraper
 from config import WEB_DICT
 
 import undetected_chromedriver as uc
-
 import os
 from typing import *
-
+from dotenv import load_dotenv
+load_dotenv()
 
 def main(log_to_discord: bool = True, log_to_local: bool = True, report_error: bool = True):
-    
+    '''
+    Main function to initiate the job scraping process.
+
+    Parameters
+    ----------
+    log_to_discord : bool
+        Whether to send the accepted vacancies to the Discord webhook (default: True)
+    log_to_local : bool
+        Whether to log the accepted vacancies to the local database (default: True)
+    report_error : bool
+        Whether to report errors via email (default: True)
+    '''
     # Load driver paths from environment variables and initialize it!
     CHROME_EXECUTABLE_PATH = os.getenv("CHROME_EXECUTABLE_PATH", "D:/chrome-win64/chrome.exe")
     DRIVER_EXECUTABLE_PATH = os.getenv("DRIVER_EXECUTABLE_PATH", "D:/chromedriver-win64/chromedriver.exe")

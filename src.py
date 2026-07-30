@@ -12,12 +12,18 @@ from selenium.webdriver.common.by import By
 import time
 import datetime
 from typing import *
+import dateparser
 
 import os
 from google import genai
 
+from dotenv import load_dotenv
+load_dotenv()
+# Gemini API key and client initialization
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
+# Discord webhook URL from environment variable
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
 
 class base_job_scraper:
     def __init__(self, DRIVER, local_log: bool = True, discord_log: bool = False, 
@@ -68,7 +74,6 @@ class base_job_scraper:
         top_content = content.find_element(By.XPATH, ".//header")
         icon = top_content.find_element(By.XPATH, ".//img").get_attribute("src")
         nama_perusahaan = top_content.find_element(By.XPATH, ".//h1[@itemprop='name']").text
-        view_count = top_content.find_element(By.XPATH, ".//span[@class='gmr-view']").text
 
         # Get the lower content of the job listing
         lower_content = content.find_element(By.XPATH, ".//div[@class='row']")
@@ -80,6 +85,8 @@ class base_job_scraper:
         # Extracting specific details from the parsed side content based on the website
         match self.website_loker:
             case "Disnakerja":
+                view_count = top_content.find_element(By.XPATH, ".//span[@class='gmr-view']").text
+
                 last_updated = side_content_parsed[1]
                 location = side_content_parsed[6]
                 experience_needed = side_content_parsed[12]
@@ -88,17 +95,26 @@ class base_job_scraper:
                 # category = side_content_parsed[3]
 
             case "Inginkerja":
+                view_count = "No info"
                 last_updated = side_content_parsed[3]
                 location = side_content_parsed[8]
                 experience_needed = "No info"
 
             case "RekrutmenBersama":
+                view_count = "No info"
                 last_updated = side_content_parsed[1]
                 location = side_content_parsed[7]
                 experience_needed = "No info"
+
+        # Convert the last updated date from Indonesian to English month names for proper date parsing
+        parsed_datetime = dateparser.parse(last_updated)
         
+        if parsed_datetime:
+            last_updated_date_object = parsed_datetime.date()
+        else:
+            last_updated_date_object = self.all_vacancies[-1]["Last_Updated"] if self.all_vacancies else datetime.datetime.now().date()
+
         # Stop if the job posting is older than the maximum allowed days
-        last_updated_date_object = datetime.datetime.strptime(last_updated, "%B %d, %Y").date()
         if last_updated_date_object < MAX_PAST_DATE:
             self.search_status = 0
             return None
@@ -124,7 +140,7 @@ class base_job_scraper:
                 "Nama_Perusahaan": nama_perusahaan,
                 "Icon": icon, 
                 "View_Count": view_count,
-                "Last_Updated": last_updated,
+                "Last_Updated": str(last_updated_date_object),
                 "Location": location,
                 "Experience_Needed": experience_needed,
                 "Position": position,
@@ -133,7 +149,7 @@ class base_job_scraper:
                 "Website_Loker": self.website_loker
             }
             if self.discord_log:
-                send_post_on_discord(returned_job)
+                send_post_on_discord(returned_job, DISCORD_WEBHOOK_URL)
                 
             self.accepted_vacancies.append(returned_job)
 
@@ -141,7 +157,7 @@ class base_job_scraper:
         overall_log = {
             "Nama_Perusahaan": nama_perusahaan,
             "View_Count": view_count,
-            "Last_Updated": last_updated,
+            "Last_Updated": str(last_updated_date_object),
             "Location": location,
             "Experience_Needed": experience_needed,
             "Position": position,

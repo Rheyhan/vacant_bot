@@ -35,7 +35,7 @@ def send_email(text: str = "", EMAIL_CREDENTIALS: dict = None):
     s.close()
 
 # Send post to Discord
-def send_post_on_discord(job: dict, WEBHOOK_URL: str = WEBHOOK_URL):
+def send_post_on_discord(job: dict, WEBHOOK_URL: str):
     '''
     Sends a job posting to a Discord channel using a webhook.
 
