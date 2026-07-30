@@ -1,177 +1,95 @@
-from config import ACCEPTED_DB_PATH, TABLE_NAME_ACCEPTED_DB, OVERALL_DB_PATH, TABLE_NAME_OVERALL_DB
-from typing import *
-from fastapi import FastAPI, Query, HTTPException
 import os
 import sqlite3
+from typing import *
+from fastapi import FastAPI, Query, HTTPException
+
+from config import ACCEPTED_DB_PATH, TABLE_NAME_ACCEPTED_DB, OVERALL_DB_PATH, TABLE_NAME_OVERALL_DB
+
 
 app = FastAPI(title="Pencari Loker API", version="1.0.0")
 
-# For API usage
-@app.get("/")
-def root():
-    return {"message": "Welcome to the Pencari Loker API. Visit /docs for API documentation.\n Good luck on your job search!"}
-
-def get_connection(DB_PATH) -> sqlite3.Connection:
-    '''
-    Get a  database connection with row factory set to sqlite3.Row. Basically change the return type to dict-like.
-
-    Parameters
-    ----------
-    - DB_PATH : str
-        Path to the SQLite database file
-
-    Returns
-    -------
-    - sqlite3.Connection
-        Database connection
-    '''
-    conn = sqlite3.connect(DB_PATH)
+def get_connection(db_path: str) -> sqlite3.Connection:
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
-def ensure_db(DB_PATH: str = OVERALL_DB_PATH):
-    '''
-    Ensure the database exists before performing any operations
+def ensure_db(db_path: str):
+    if not os.path.exists(db_path):
+        raise HTTPException(
+            status_code=404, detail=f"Database not found at {db_path}")     
 
-    Parameters
-    ----------
-    - DB_PATH : str
-        Path to the SQLite database file
-    '''
-    if not os.path.exists(DB_PATH):
-        raise HTTPException(status_code=404, detail=f"Database not found at {DB_PATH}")
-    
-def build_filters(  category: Optional[str], creator: Optional[str],
-                    IsVerified: Optional[bool], IsLimited: Optional[bool]):
-    clauses = []
-    params = []
 
-    if creator:
-        clauses.append("Creator = ?")
-        params.append(creator)
-    if category:
-        clauses.append("category = ?")
-        params.append(category)
-    if IsVerified is not None:
-        clauses.append("IsVerified = ?")
-        params.append(1 if IsVerified else 0)
-    if IsLimited is not None:
-        clauses.append("IsLimited = ?")
-        params.append(1 if IsLimited else 0)
-        
-    where_sql = " WHERE " + " AND ".join(clauses) if clauses else ""
-    return where_sql, params
+def fetch_stats(db_path: str, table_name: str) -> dict:
+    ensure_db(db_path)
+    conn = None
+    try:
+        conn = get_connection(db_path)
+        query = f"""
+            SELECT 
+                COUNT(*) AS total,
+                COUNT(CASE WHEN Website_Loker = 'Disnakerja' THEN 1 END) AS total_disnaker,
+                COUNT(CASE WHEN Website_Loker = 'Inginkerja' THEN 1 END) AS total_inginkerja,
+                COUNT(CASE WHEN Website_Loker = 'RekrutmenBersama' THEN 1 END) AS total_rekrutmenbersama
+            FROM {table_name}
+        """
+        row = conn.execute(query).fetchone()
+        return {
+            "total": row["total"],
+            "detail": {
+                "Disnakerja": row["total_disnaker"],
+                "Inginkerja": row["total_inginkerja"],
+                "RekrutmenBersama": row["total_rekrutmenbersama"],
+            },
+            "storage_size_bytes": os.path.getsize(db_path),
+        }
+    finally:
+        if conn:
+            conn.close()
+
+
+def fetch_recent(db_path: str, table_name: str, limit: int) -> dict:
+    ensure_db(db_path)
+    conn = None
+    try:
+        conn = get_connection(db_path)
+        rows = conn.execute(
+            f"SELECT * FROM {table_name} ORDER BY Last_Updated DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return {"items": [dict(r) for r in rows]}
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.get("/")
+def root():
+    return {
+        "message": "Welcome to the Pencari Loker API. Visit /docs for API documentation. Good luck on your job search!"
+    }
 
 @app.get("/health")
 def health():
-    '''
-    Health check endpoint
-    '''
     return {"status": "ok"}
 
+# ENDPOINTS for selected
+@app.get("/selected/stats")
+def get_selected_stats():
+    """Get statistics for accepted vacancies."""
+    return fetch_stats(ACCEPTED_DB_PATH, TABLE_NAME_ACCEPTED_DB)
 
-@app.get("/items")
-def list_items(limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0), creator: Optional[str] = None,
-               category: Optional[str] = None, verified: Optional[bool] = None, limited: Optional[bool] = None):
-    '''
-    List items with optional filters and pagination
+@app.get("/selected/recent")
+def get_selected_recent(limit: int = Query(10, ge=1, le=100)):
+    """Get the most recent accepted vacancies."""
+    return fetch_recent(ACCEPTED_DB_PATH, TABLE_NAME_ACCEPTED_DB, limit)
 
-    Parameters
-    ----------
-    - limit : int
-        Number of items to return (default 50, max 500)
-    - offset : int
-        Number of items to skip (default 0)
-    - creator : Optional[str]
-        Filter by creator name
-    - category : Optional[str]
-        Filter by category
-    - verified : Optional[bool]
-        Filter by verified status
-    - limited : Optional[bool]
-        Filter by limited status
-    '''
+# Endpoints for All
+@app.get("/all/stats")
+def get_all_stats():
+    """Get statistics for all logged vacancies."""
+    return fetch_stats(OVERALL_DB_PATH, TABLE_NAME_OVERALL_DB)
 
-    ensure_db()
-
-    where_sql, params = build_filters(creator, category, verified, limited)
-    sql = f"SELECT * FROM {TABLE_NAME}{where_sql} ORDER BY id DESC LIMIT ? OFFSET ?"
-    params = params + [limit, offset]
-
-    rows = []
-    conn = None
-    try:
-        conn = get_connection()
-        rows = conn.execute(sql, params).fetchall()
-    finally:
-        if conn:
-            conn.close()
-
-    return {"count": len(rows), "items": [dict(r) for r in rows]}
-
-@app.get("/items/{item_id}")
-def get_item(item_id: int):
-    ensure_db()
-    conn = None
-    row = None
-    try:
-        conn = get_connection()
-        row = conn.execute(
-            f"SELECT * FROM {TABLE_NAME} WHERE id = ?", (item_id,)
-        ).fetchone()
-    finally:
-        if conn:
-            conn.close()
-    if not row:
-        raise HTTPException(status_code=404, detail="Item not found")
-    return dict(row)
-
-@app.get("/stats")
-def stats():
-    '''
-    Get database statistics
-    '''
-    ensure_db()
-    conn = None
-    try:
-        conn = get_connection()
-        total = conn.execute(f"SELECT COUNT(*) FROM {TABLE_NAME}").fetchone()[0]
-        latest = conn.execute(
-            f"SELECT MAX(timeCollected) FROM {TABLE_NAME}"
-        ).fetchone()[0]
-        verified = conn.execute(
-            f"SELECT COUNT(*) FROM {TABLE_NAME} WHERE IsVerified = 1"
-        ).fetchone()[0]
-        limited = conn.execute(
-            f"SELECT COUNT(*) FROM {TABLE_NAME} WHERE IsLimited = 1"
-        ).fetchone()[0]
-        category = conn.execute(f"SELECT category, COUNT(*) FROM {TABLE_NAME} GROUP BY category").fetchall()
-    finally:
-        if conn:
-            conn.close()
-    return {
-        "total": total,
-        "verified": verified,
-        "limited": limited,
-        "latest_timeCollected": latest,
-        "detail": {i['category']: i[1] for i in category[1:]},
-        "storage size_bytes": os.path.getsize(DB_PATH),
-    }
-
-@app.get("/recent")
-def recent(limit: int = Query(10, ge=1, le=100)):
-    '''
-    Get the most recent items added to the database
-    '''
-    ensure_db()
-    conn = None
-    rows = []
-    try:
-        conn = get_connection()
-        rows = conn.execute(
-            f"SELECT * FROM {TABLE_NAME} ORDER BY timeCollected DESC LIMIT ?", (limit,)
-        ).fetchall()
-    finally:
-        if conn:
-            conn.close()
-    return {"items": [dict(r) for r in rows]}
+@app.get("/all/recent")
+def get_all_recent(limit: int = Query(10, ge=1, le=100)):
+    """Get the most recent items from all logged vacancies."""
+    return fetch_recent(OVERALL_DB_PATH, TABLE_NAME_OVERALL_DB, limit)

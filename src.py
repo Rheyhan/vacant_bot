@@ -103,7 +103,7 @@ class base_job_scraper:
             case "RekrutmenBersama":
                 view_count = "No info"
                 last_updated = side_content_parsed[1]
-                location = side_content_parsed[7]
+                location = side_content_parsed[6]
                 experience_needed = "No info"
 
         # Convert the last updated date from Indonesian to English month names for proper date parsing
