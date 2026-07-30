@@ -190,6 +190,7 @@ class base_job_scraper:
 
         while self.search_status:
             self.DRIVER.get(Used_URL + str(current_page))
+            time.sleep(LONG_WAIT) 
 
             # Wait for the job board to load
             try:
@@ -220,5 +221,5 @@ class base_job_scraper:
         if self.local_log:
             insert_rows(self.accepted_vacancies, db_type="accepted")
             insert_rows(self.all_vacancies, db_type="overall")
-
+        
         return self.accepted_vacancies, self.all_vacancies

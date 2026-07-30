@@ -2,10 +2,13 @@ from src import base_job_scraper
 from config import WEB_DICT
 
 import undetected_chromedriver as uc
+from selenium.webdriver.chrome.options import Options
+
 import os
 from typing import *
 from dotenv import load_dotenv
 load_dotenv()
+
 
 def main(log_to_discord: bool = True, log_to_local: bool = True, report_error: bool = True):
     '''
@@ -23,7 +26,9 @@ def main(log_to_discord: bool = True, log_to_local: bool = True, report_error: b
     # Load driver paths from environment variables and initialize it!
     CHROME_EXECUTABLE_PATH = os.getenv("CHROME_EXECUTABLE_PATH", "D:/chrome-win64/chrome.exe")
     DRIVER_EXECUTABLE_PATH = os.getenv("DRIVER_EXECUTABLE_PATH", "D:/chromedriver-win64/chromedriver.exe")
-    DRIVER = uc.Chrome(browser_executable_path=CHROME_EXECUTABLE_PATH, driver_executable_path=DRIVER_EXECUTABLE_PATH, headless=False)
+    OPTIONS = uc.ChromeOptions()
+    OPTIONS.add_extension("adblock.crx")
+    DRIVER = uc.Chrome(browser_executable_path=CHROME_EXECUTABLE_PATH, driver_executable_path=DRIVER_EXECUTABLE_PATH, headless=False, options=OPTIONS)
 
     if report_error:
         from utils.online_logs import send_email
@@ -44,8 +49,8 @@ def main(log_to_discord: bool = True, log_to_local: bool = True, report_error: b
             print(f"Error in main: {exc}")
             if report_error:
                 send_email(str(exc), EMAIL_CREDENTIALS)
-
-    DRIVER.quit()
+    
+    DRIVER.close()
 
 if __name__ == "__main__":
     main(log_to_discord=True, log_to_local=True, report_error=True)
