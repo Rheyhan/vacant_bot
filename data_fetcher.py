@@ -1,5 +1,5 @@
 from src import base_job_scraper
-from config import WEB_DICT
+from config import WEB_DICT, DRIVER_EXECUTABLE_PATH, CHROME_EXECUTABLE_PATH
 
 import undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
@@ -25,8 +25,6 @@ def main(log_to_discord: bool = True, log_to_local: bool = True, report_error: b
         Whether to report errors via email (default: True)
     '''
     # Load driver paths from environment variables and initialize it!
-    CHROME_EXECUTABLE_PATH = os.getenv("CHROME_EXECUTABLE_PATH", "D:/chrome-win64/chrome.exe")
-    DRIVER_EXECUTABLE_PATH = os.getenv("DRIVER_EXECUTABLE_PATH", "D:/chromedriver-win64/chromedriver.exe")
     OPTIONS = uc.ChromeOptions()
     OPTIONS.add_extension("adblock.crx")
     DRIVER = uc.Chrome(browser_executable_path=CHROME_EXECUTABLE_PATH, driver_executable_path=DRIVER_EXECUTABLE_PATH, headless=True, options=OPTIONS)
