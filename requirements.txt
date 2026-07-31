@@ -1,0 +1,11 @@
+dateparser
+discord.py
+fastapi
+google-genai
+numpy
+pydantic
+python-dotenv
+selenium
+undetected-chromedriver
+uvicorn
+fastapi[standard]

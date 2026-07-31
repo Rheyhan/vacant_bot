@@ -5,7 +5,6 @@ from fastapi import FastAPI, Query, HTTPException
 
 from config import ACCEPTED_DB_PATH, TABLE_NAME_ACCEPTED_DB, OVERALL_DB_PATH, TABLE_NAME_OVERALL_DB
 
-
 app = FastAPI(title="Pencari Loker API", version="1.0.0")
 
 def get_connection(db_path: str) -> sqlite3.Connection:
@@ -47,14 +46,20 @@ def fetch_stats(db_path: str, table_name: str) -> dict:
             conn.close()
 
 
-def fetch_recent(db_path: str, table_name: str, limit: int) -> dict:
+def fetch_recent(db_path: str, table_name: str, limit: int, website_loker: str | None = None) -> dict:
     ensure_db(db_path)
     conn = None
     try:
         conn = get_connection(db_path)
+        params: list[object] = []
+        where_clause = ""
+        if website_loker:
+            where_clause = "WHERE Website_Loker = ?"
+            params.append(website_loker)
+        params.append(limit)
         rows = conn.execute(
-            f"SELECT * FROM {table_name} ORDER BY Last_Updated DESC LIMIT ?",
-            (limit,),
+            f"SELECT * FROM {table_name} {where_clause} ORDER BY Last_Updated DESC LIMIT ?",
+            params,
         ).fetchall()
         return {"items": [dict(r) for r in rows]}
     finally:
@@ -79,9 +84,9 @@ def get_selected_stats():
     return fetch_stats(ACCEPTED_DB_PATH, TABLE_NAME_ACCEPTED_DB)
 
 @app.get("/selected/recent")
-def get_selected_recent(limit: int = Query(10, ge=1, le=100)):
+def get_selected_recent(limit: int = Query(10, ge=1, le=100), website_loker: str | None = Query(None)):
     """Get the most recent accepted vacancies."""
-    return fetch_recent(ACCEPTED_DB_PATH, TABLE_NAME_ACCEPTED_DB, limit)
+    return fetch_recent(ACCEPTED_DB_PATH, TABLE_NAME_ACCEPTED_DB, limit, website_loker)
 
 # Endpoints for All
 @app.get("/all/stats")
@@ -90,6 +95,6 @@ def get_all_stats():
     return fetch_stats(OVERALL_DB_PATH, TABLE_NAME_OVERALL_DB)
 
 @app.get("/all/recent")
-def get_all_recent(limit: int = Query(10, ge=1, le=100)):
+def get_all_recent(limit: int = Query(10, ge=1, le=100), website_loker: str | None = Query(None)):
     """Get the most recent items from all logged vacancies."""
-    return fetch_recent(OVERALL_DB_PATH, TABLE_NAME_OVERALL_DB, limit)
+    return fetch_recent(OVERALL_DB_PATH, TABLE_NAME_OVERALL_DB, limit, website_loker)

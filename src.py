@@ -219,7 +219,8 @@ class base_job_scraper:
         # Logging processes
         log_URLs(self.website_loker, self.temp_logged_URLs) # Log the URLs that have been processed to avoid re-scraping in the future
         if self.local_log:
-            insert_rows(self.accepted_vacancies, db_type="accepted")
-            insert_rows(self.all_vacancies, db_type="overall")
+            a = insert_rows(self.accepted_vacancies, db_type="accepted")
+            b = insert_rows(self.all_vacancies, db_type="overall")
+            print(f"Inserted {a} rows into the accepted vacancies database and {b} rows into the overall vacancies database.")
         
         return self.accepted_vacancies, self.all_vacancies

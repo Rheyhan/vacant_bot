@@ -42,7 +42,7 @@ TABLE_NAME_ACCEPTED_DB = "Accepted_vacancies"
 OVERALL_DB_PATH = "SQL_DATA/All_logged_vacancies.db"
 TABLE_NAME_OVERALL_DB = "All_vacancies"
 
-CHROME_EXECUTABLE_PATH = "D:/chrome-win64/chrome.exe"
+CHROME_EXECUTABLE_PATH = "D:/chrome-win64/chrome.exe"                   # Replace with urs
 DRIVER_EXECUTABLE_PATH = "D:/chromedriver-win64/chromedriver.exe"
 
 CURRENT_DATE = datetime.datetime.now().date()
