@@ -12,9 +12,23 @@ This project was firstly built as a personal job-hunting automation tool designe
 
 ## API Endpoint
 Recent Jobs Endpoint: http://api-vb.rheyhan.com/all/recent
+Docs: http://api-vb.rheyhan.com/
 
 ## AI Assisted Job Search with endpoint data
-Please do note, 
+Please do note, the endpoint data is not a replacement for a full-fledged job search engine. It is meant to assist in finding relevant job listings based on your CV and preferences. The AI evaluation is based on the Gemini API, which analyzes job descriptions against your CV criteria. 
+
+Currently, the AI evaluation is limited to the job description text and does not consider other factors such as company reputation or salary.
+
+You can use it here: [GOOGLE COLLAB](https://colab.research.google.com/drive/1w5pDPno0aNAuAD6yBitW621ZvguknFQE?usp=sharing)
+
+NOTE: You're using your own Google Collab, therefore nothing is stored on my server.
+
+### Instructions to use the AI evaluation:
+1. Open the Google Colab link provided above.
+2. Upload your CV or Resume on files section. (Only PDF format is supported)
+3. Get your API key from Gemini API and paste it in the designated cell. (Create ur API here: https://aistudio.google.com/api-keys)
+4. Adjust `CV_Name` variable to match your uploaded CV file name.
+5. Run all the cells to evaluate job listings against your CV. The output will show the suitability for each job listing. 
 
 ## Pipeline Workflow
 ```
