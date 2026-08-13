@@ -42,8 +42,8 @@ TABLE_NAME_ACCEPTED_DB = "Accepted_vacancies"
 OVERALL_DB_PATH = "SQL_DATA/All_logged_vacancies.db"
 TABLE_NAME_OVERALL_DB = "All_vacancies"
 
-CHROME_EXECUTABLE_PATH = "D:/chrome-win64/chrome.exe"                   # Replace with urs
-DRIVER_EXECUTABLE_PATH = "D:/chromedriver-win64/chromedriver.exe"
+CHROME_EXECUTABLE_PATH = "chrome-linux64/chrome"                   # Replace with urs
+DRIVER_EXECUTABLE_PATH = "chromedriver-linux64/chromedriver"
 
 CURRENT_DATE = datetime.datetime.now().date()
 MAX_PAST_DATE = CURRENT_DATE - datetime.timedelta(days=MAX_PAST_DAYS)
